@@ -1,0 +1,331 @@
+<!-- app/globals.css -->
+@import "tailwindcss";
+
+:root {
+  --sand: #FAF9F6;
+  --charcoal: #333333;
+  --muted: #555555;
+  --divider: #E0E0E0;
+  --accent: #4A90E2;
+  --accent-soft: #4A90E233; /* ~20% alpha */
+}
+
+/* Base: serene background with soft radial accent */
+@layer base {
+  html, body {
+    height: 100%;
+  }
+  body {
+    background:
+      radial-gradient(1200px 600px at 90% -10%, rgba(74, 144, 226, 0.10), rgba(250, 249, 246, 0)) ,
+      radial-gradient(800px 400px at 10% 10%, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0)),
+      var(--sand);
+    color: var(--charcoal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improve focus visibility */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  a {
+    transition: color 150ms ease, text-decoration-color 150ms ease;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+}
+
+/* Minimal custom utilities to match the palette and interactions */
+@layer utilities {
+  .bg-sand { background-color: var(--sand); }
+  .text-charcoal { color: var(--charcoal); }
+  .text-muted { color: var(--muted); }
+  .text-accent { color: var(--accent); }
+  .border-divider { border-color: var(--divider); }
+  .border-accent { border-color: var(--accent); }
+  .bg-accent { background-color: var(--accent); }
+  .bg-accent-soft { background-color: var(--accent-soft); }
+  .shadow-soft { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06); }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 400ms ease both;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fadeInUp {
+    animation: fadeInUp 450ms ease both;
+  }
+
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-menuIn {
+    animation: menuIn 160ms ease-out both;
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute;
+    left: -999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .skip-link:focus {
+    left: 1rem;
+    top: 1rem;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: var(--charcoal);
+    border: 1px solid var(--divider);
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Avatar placeholder ring */
+  .avatar-ring {
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,0.05);
+  }
+}
+
+<!-- components/page-transition.tsx -->
+"use client"
+
+import type React from "react"
+import { usePathname } from "next/navigation"
+
+export default function PageTransition({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  return (
+    <div key={pathname} className="animate-fadeInUp">
+      {children}
+    </div>
+  )
+}
+
+<!-- components/header.tsx -->
+"use client"
+
+import Link from "next/link"
+import { useEffect, useRef, useState } from "react"
+import { usePathname } from "next/navigation"
+
+export default function Header() {
+  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    // Close menu on route change
+    setOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", onClickOutside)
+    }
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [open])
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-divider bg-sand backdrop-blur-sm">
+      <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+        {/* Left: Home link - more discoverable */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-base md:text-lg tracking-tight hover:text-accent transition-colors"
+          aria-label="Go to home"
+        >
+          <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-full border border-divider bg-sand">
+            <span className="text-[11px] font-medium" aria-hidden="true">SE</span>
+            <span className="sr-only">Logo</span>
+          </span>
+          <span className="hidden sm:inline">[Your Name]</span>
+        </Link>
+
+        {/* Right: Hamburger menu */}
+        <div className="relative" ref={menuRef}>
+          <div
+            className="group inline-flex items-center"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+          >
+            <button
+              aria-label="Open menu"
+              aria-expanded={open}
+              aria-controls="main-menu"
+              onClick={() => setOpen((v) => !v)}
+              className="relative h-10 rounded-md border border-divider bg-sand hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40 px-3 flex items-center gap-2"
+            >
+              {/* Hamburger: more visible bars */}
+              <span
+                className={`block h-[2px] w-5 bg-charcoal transition-transform ${open ? "translate-y-[6px] rotate-45" : ""}`}
+              />
+              <span
+                className={`block h-[2px] w-5 bg-charcoal my-[5px] transition-opacity ${open ? "opacity-0" : "opacity-100"}`}
+              />
+              <span
+                className={`block h-[2px] w-5 bg-charcoal transition-transform ${open ? "-translate-y-[6px] -rotate-45" : ""}`}
+              />
+              <span className="text-sm text-muted hidden sm:inline">Menu</span>
+            </button>
+          </div>
+
+          <nav
+            id="main-menu"
+            role="navigation"
+            aria-label="Primary"
+            className={`absolute right-0 mt-3 w-44 rounded-md border border-divider bg-sand p-2 shadow-soft ${open ? "animate-menuIn block" : "hidden"}`}
+          >
+            <MenuLink href="/" label="Home" current={pathname === "/"} />
+            <MenuLink href="/about" label="About" current={pathname === "/about"} />
+            <MenuLink href="/projects" label="Projects" current={pathname === "/projects"} />
+          </nav>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function MenuLink({ href, label, current }: { href: string; label: string; current?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`block rounded px-3 py-2 text-sm ${current ? "text-accent" : "text-charcoal hover:text-accent"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40`}
+      aria-current={current ? "page" : undefined}
+    >
+      {label}
+    </Link>
+  )
+}
+
+<!-- components/project-card.tsx -->
+import Link from "next/link"
+
+export interface Project {
+  title: string
+  description: string
+  features: string[]
+  tech: string
+  href?: string
+  repo?: string
+}
+
+export default function ProjectCard({ project }: { project: Project }) {
+  return (
+    <article className="group rounded-lg border border-divider bg-sand p-4 transition-all duration-200 hover:-translate-y-[2px] hover:shadow-soft hover:border-accent">
+      <div className="mb-4 aspect-[16/9] w-full overflow-hidden rounded-md border border-divider bg-white/70">
+        <div className="flex h-full w-full items-center justify-center text-muted text-sm">
+          {"Screenshot Placeholder"}
+        </div>
+      </div>
+      <h3 className="text-base md:text-lg font-medium">{project.title}</h3>
+      <p className="mt-2 text-[15px] text-charcoal/90">{project.description}</p>
+      <ul className="mt-3 list-disc pl-5 text-[15px] text-charcoal/90">
+        {project.features.map((f, i) => (
+          <li key={i}>{f}</li>
+        ))}
+      </ul>
+      <p className="mt-3 text-sm text-muted">
+        <span className="font-medium">Tech:</span> {project.tech}
+      </p>
+      {(project.href || project.repo) && (
+        <div className="mt-4 flex gap-4">
+          {project.href && (
+            <Link
+              className="text-sm text-accent hover:underline"
+              href={project.href}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Live Demo
+            </Link>
+          )}
+          {project.repo && (
+            <Link
+              className="text-sm text-accent hover:underline"
+              href={project.repo}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Repository
+            </Link>
+          )}
+        </div>
+      )}
+    </article>
+  )
+}
+
+<!-- app/page.tsx -->
+import Link from "next/link"
+
+export default function HomePage() {
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-16 md:py-24">
+      <section className="flex flex-col items-center text-center gap-8">
+        {/* Circular avatar placeholder with soft blob */}
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="absolute -inset-6 -z-10 rounded-full bg-accent-soft blur-2xl"
+          />
+          <div className="h-28 w-28 md:h-36 md:w-36 rounded-full bg-white/70 border border-divider avatar-ring flex items-center justify-center">
+            <span className="text-2xl md:text-3xl text-muted">{"👤"}</span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h1 className="text-2xl md:text-4xl font-medium tracking-tight">
+            <span className="relative inline-block px-1">
+              [Your Name]
+              <span
+                aria-hidden="true"
+                className="absolute left-0 right-0 -bottom-1 h-2 rounded-full bg-accent-soft"
+              />
+            </span>
+          </h1>
+          <p className="text-base md:text-lg text-muted">Software Engineer</p>
+          <p className="max-w-2xl text-[15px] md:text-base text-charcoal/90">
+            {"Building intuitive software solutions with a focus on simplicity, performance, and user empathy."}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/about"
+            className="rounded-md border border-divider bg-sand px-4 py-2 text-sm hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40"
+          >
+            About Me
+          </Link>
+          <Link
+            href="/projects"
+            className="rounded-md bg-accent text-white px-4 py-2 text-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/40"
+          >
+            Projects
+          </Link>
+        </div>
+      </section>
+    </div>
+  )
+}
